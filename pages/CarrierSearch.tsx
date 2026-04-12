@@ -725,6 +725,12 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                       <MapPin size={16} className="text-indigo-400 shrink-0" />
                       <div className="flex flex-col"><span className="text-[9px] text-slate-500 font-black uppercase">Location</span><span className="text-xs font-bold text-slate-300 leading-tight">{selectedCarrier.physicalAddress}</span></div>
                     </div>
+                    {selectedCarrier.companyRep && (
+                      <div className="flex items-center gap-3">
+                        <Globe size={16} className="text-indigo-400 shrink-0" />
+                        <div className="flex flex-col"><span className="text-[9px] text-slate-500 font-black uppercase">Company Rep</span><span className="text-sm font-bold text-slate-200">{selectedCarrier.companyRep}</span></div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="bg-slate-850/60 p-6 rounded-3xl border border-slate-700/50 space-y-4 shadow-lg group">
@@ -782,8 +788,8 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                         ))}
                       </div>
                     </div>
-                    <div className={`w-full py-4 rounded-2xl flex items-center justify-center font-black tracking-widest text-xs border-2 ${selectedCarrier.cargoCarried?.some(c => c.toLowerCase().includes('haz')) ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                      {selectedCarrier.cargoCarried?.some(c => c.toLowerCase().includes('haz')) ? 'HAZMAT INDICATOR: YES' : 'HAZMAT INDICATOR: NON-HAZMAT'}
+                    <div className={`w-full py-4 rounded-2xl flex items-center justify-center font-black tracking-widest text-xs border-2 ${(selectedCarrier as any).hmInd === 'Y' || selectedCarrier.cargoCarried?.some(c => c.toLowerCase().includes('haz')) ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                      {(selectedCarrier as any).hmInd === 'Y' || selectedCarrier.cargoCarried?.some(c => c.toLowerCase().includes('haz')) ? 'HAZMAT INDICATOR: YES' : 'HAZMAT INDICATOR: NON-HAZMAT'}
                     </div>
                     <div className="h-px bg-slate-800/50 my-2" />
                     <div>
