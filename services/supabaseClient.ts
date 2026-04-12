@@ -8,52 +8,65 @@ import {
   updateCarrierSafetyInBackend,
   CarrierFilters,
 } from './backendApiService';
+
+// ── Census-schema carrier record shape (matches database.py _carrier_row_to_dict) ──
 export interface CarrierRecord {
-  id?: string;
-  mc_number: string;
+  // IDs
+  mc_number?: string | null;
   dot_number: string;
+  duns_number?: string | null;
+  // Identity
   legal_name: string;
-  dba_name?: string;
+  dba_name?: string | null;
   entity_type: string;
   status: string;
-  email?: string;
-  phone?: string;
-  power_units?: string;
-  drivers?: string;
-  non_cmv_units?: string;
-  physical_address?: string;
-  mailing_address?: string;
-  date_scraped: string;
-  mcs150_date?: string;
-  mcs150_mileage?: string;
+  // Contact
+  email?: string | null;
+  phone?: string | null;
+  company_rep?: string | null;
+  // Location
+  physical_address?: string | null;
+  mailing_address?: string | null;
+  phy_state?: string | null;
+  // Compliance
+  mcs150_date?: string | null;
+  mcs150_mileage?: string | null;
+  add_date?: string | null;
+  date_scraped?: string | null;
+  // Operations
   operation_classification?: string[];
   carrier_operation?: string[];
   cargo_carried?: string[];
-  out_of_service_date?: string;
-  state_carrier_id?: string;
-  duns_number?: string;
-  safety_rating?: string;
-  safety_rating_date?: string;
+  hm_ind?: string | null;
+  // Fleet
+  power_units?: string | null;
+  drivers?: string | null;
+  // Safety (enriched separately)
+  safety_rating?: string | null;
+  safety_rating_date?: string | null;
   basic_scores?: any;
   oos_rates?: any;
-  insurance_policies?: any;
+  out_of_service_date?: string | null;
+  state_carrier_id?: string | null;
   inspections?: any;
   crashes?: any;
-  created_at?: string;
-  updated_at?: string;
+  // Insurance
+  insurance_history_filings?: any[];
 }
+
+// ── Save helpers (kept for scraper compatibility) ─────────────────────────────
+
 export const saveCarrierToSupabase = async (
   carrier: any
 ): Promise<{ success: boolean; error?: string; data?: any }> => {
   try {
-    if (!carrier.mcNumber || !carrier.dotNumber || !carrier.legalName) {
+    if (!carrier.dotNumber || !carrier.legalName) {
       return {
         success: false,
-        error: 'Missing required fields: mcNumber, dotNumber, or legalName',
+        error: 'Missing required fields: dotNumber or legalName',
       };
     }
-    const record: CarrierRecord = {
-      mc_number: carrier.mcNumber,
+    const record: any = {
       dot_number: carrier.dotNumber,
       legal_name: carrier.legalName,
       dba_name: carrier.dbaName || null,
@@ -63,7 +76,6 @@ export const saveCarrierToSupabase = async (
       phone: carrier.phone || null,
       power_units: carrier.powerUnits || null,
       drivers: carrier.drivers || null,
-      non_cmv_units: carrier.nonCmvUnits || null,
       physical_address: carrier.physicalAddress || null,
       mailing_address: carrier.mailingAddress || null,
       date_scraped: carrier.dateScraped,
@@ -72,32 +84,26 @@ export const saveCarrierToSupabase = async (
       operation_classification: carrier.operationClassification || [],
       carrier_operation: carrier.carrierOperation || [],
       cargo_carried: carrier.cargoCarried || [],
-      out_of_service_date: carrier.outOfServiceDate || null,
-      state_carrier_id: carrier.stateCarrierId || null,
       duns_number: carrier.dunsNumber || null,
       safety_rating: carrier.safetyRating || null,
       safety_rating_date: carrier.safetyRatingDate || null,
       basic_scores: carrier.basicScores || null,
       oos_rates: carrier.oosRates || null,
-      insurance_policies: carrier.insurancePolicies || null,
       inspections: carrier.inspections || null,
       crashes: carrier.crashes || null,
     };
     return saveCarrierToBackend(record);
   } catch (err: any) {
     console.error('Exception saving to Backend:', err);
-    return {
-      success: false,
-      error: `Exception: ${err.message}`,
-    };
+    return { success: false, error: `Exception: ${err.message}` };
   }
 };
+
 export const saveCarriersToSupabase = async (
   carriers: any[]
 ): Promise<{ success: boolean; error?: string; saved: number; failed: number }> => {
   try {
     const records = carriers.map(carrier => ({
-      mc_number: carrier.mcNumber,
       dot_number: carrier.dotNumber,
       legal_name: carrier.legalName,
       dba_name: carrier.dbaName || null,
@@ -107,7 +113,6 @@ export const saveCarriersToSupabase = async (
       phone: carrier.phone || null,
       power_units: carrier.powerUnits || null,
       drivers: carrier.drivers || null,
-      non_cmv_units: carrier.nonCmvUnits || null,
       physical_address: carrier.physicalAddress || null,
       mailing_address: carrier.mailingAddress || null,
       date_scraped: carrier.dateScraped,
@@ -116,43 +121,34 @@ export const saveCarriersToSupabase = async (
       operation_classification: carrier.operationClassification || [],
       carrier_operation: carrier.carrierOperation || [],
       cargo_carried: carrier.cargoCarried || [],
-      out_of_service_date: carrier.outOfServiceDate || null,
-      state_carrier_id: carrier.stateCarrierId || null,
       duns_number: carrier.dunsNumber || null,
       safety_rating: carrier.safetyRating || null,
       safety_rating_date: carrier.safetyRatingDate || null,
-      basic_scores: carrier.basicScores || null,
-      oos_rates: carrier.oosRates || null,
-      insurance_policies: carrier.insurancePolicies || null,
-      inspections: carrier.inspections || null,
-      crashes: carrier.crashes || null,
     }));
     return saveCarriersToBackend(records);
   } catch (err: any) {
     console.error('Exception saving batch to Backend:', err);
-    return {
-      success: false,
-      saved: 0,
-      failed: carriers.length,
-      error: `Exception: ${err.message}`,
-    };
+    return { success: false, saved: 0, failed: carriers.length, error: `Exception: ${err.message}` };
   }
 };
+
+// ── Filters interface (mirrors backendApiService CarrierFilters) ───────────────
+
 export interface CarrierFiltersSupabase {
   mcNumber?: string;
   dotNumber?: string;
   legalName?: string;
   entityType?: string;
-  active?: string;           
+  active?: string;
   state?: string;
-  hasEmail?: string;         
-  hasBoc3?: string;          
-  hasCompanyRep?: string;    
+  hasEmail?: string;
+  hasBoc3?: string;
+  hasCompanyRep?: string;
   yearsInBusinessMin?: number;
   yearsInBusinessMax?: number;
   classification?: string[];
   carrierOperation?: string[];
-  hazmat?: string;           
+  hazmat?: string;
   powerUnitsMin?: number;
   powerUnitsMax?: number;
   driversMin?: number;
@@ -163,9 +159,9 @@ export interface CarrierFiltersSupabase {
   bipdMax?: number;
   insEffectiveDateFrom?: string;
   insEffectiveDateTo?: string;
-  bipdOnFile?: string;       
-  cargoOnFile?: string;      
-  bondOnFile?: string;       
+  bipdOnFile?: string;
+  cargoOnFile?: string;
+  bondOnFile?: string;
   trustFundOnFile?: string;
   insCancellationDateFrom?: string;
   insCancellationDateTo?: string;
@@ -188,7 +184,12 @@ export interface CarrierFiltersSupabase {
   limit?: number;
   offset?: number;
 }
-export const fetchCarriersFromSupabase = async (filters: CarrierFiltersSupabase = {}): Promise<{ data: any[]; filtered_count: number }> => {
+
+// ── Main fetch — maps Census API response → CarrierData shape ─────────────────
+
+export const fetchCarriersFromSupabase = async (
+  filters: CarrierFiltersSupabase = {}
+): Promise<{ data: any[]; filtered_count: number }> => {
   try {
     const backendFilters: CarrierFilters = {
       mcNumber: filters.mcNumber,
@@ -221,18 +222,7 @@ export const fetchCarriersFromSupabase = async (filters: CarrierFiltersSupabase 
       insCancellationDateTo: filters.insCancellationDateTo,
       yearsInBusinessMin: filters.yearsInBusinessMin,
       yearsInBusinessMax: filters.yearsInBusinessMax,
-      oosMin: filters.oosMin,
-      oosMax: filters.oosMax,
-      crashesMin: filters.crashesMin,
-      crashesMax: filters.crashesMax,
-      injuriesMin: filters.injuriesMin,
-      injuriesMax: filters.injuriesMax,
-      fatalitiesMin: filters.fatalitiesMin,
-      fatalitiesMax: filters.fatalitiesMax,
-      towawayMin: filters.towawayMin,
-      towawayMax: filters.towawayMax,
-      inspectionsMin: filters.inspectionsMin,
-      inspectionsMax: filters.inspectionsMax,
+      // Safety filters not supported by Census data — omit
       insuranceCompany: filters.insuranceCompany,
       renewalPolicyMonths: filters.renewalPolicyMonths,
       renewalDateFrom: filters.renewalDateFrom,
@@ -240,57 +230,89 @@ export const fetchCarriersFromSupabase = async (filters: CarrierFiltersSupabase 
       limit: filters.limit,
       offset: filters.offset,
     };
+
     const result = await fetchCarriersFromBackend(backendFilters);
+
+    // Map Census API fields → CarrierData interface used by CarrierSearch.tsx
     const mapped = (result.data || []).map((record: any) => ({
-      mcNumber: record.mc_number,
-      dotNumber: record.dot_number,
-      legalName: record.legal_name,
-      dbaName: record.dba_name,
-      entityType: record.entity_type,
-      status: record.status,
-      email: record.email,
-      phone: record.phone,
-      powerUnits: record.power_units,
-      drivers: record.drivers,
-      nonCmvUnits: record.non_cmv_units,
-      physicalAddress: record.physical_address,
-      mailingAddress: record.mailing_address,
-      dateScraped: record.date_scraped,
-      mcs150Date: record.mcs150_date,
-      mcs150Mileage: record.mcs150_mileage,
-      operationClassification: record.operation_classification,
-      carrierOperation: record.carrier_operation,
-      cargoCarried: record.cargo_carried,
-      outOfServiceDate: record.out_of_service_date,
-      stateCarrierId: record.state_carrier_id,
-      dunsNumber: record.duns_number,
-      safetyRating: record.safety_rating,
-      safetyRatingDate: record.safety_rating_date,
-      basicScores: record.basic_scores,
-      oosRates: record.oos_rates,
-      insurancePolicies: record.insurance_policies,
+      // ── Identification
+      mcNumber: record.mc_number || '',
+      dotNumber: record.dot_number || '',
+      dunsNumber: record.duns_number || '',
+
+      // ── Identity
+      legalName: record.legal_name || '',
+      dbaName: record.dba_name || '',
+      entityType: record.entity_type || 'CARRIER',
+      status: record.status || 'NOT AUTHORIZED',
+
+      // ── Contact
+      email: record.email || '',
+      phone: record.phone || '',
+      companyRep: record.company_rep || '',
+
+      // ── Location
+      physicalAddress: record.physical_address || '',
+      mailingAddress: record.mailing_address || '',
+
+      // ── Compliance
+      mcs150Date: record.mcs150_date || '',
+      mcs150Mileage: record.mcs150_mileage || '',
+      dateScraped: record.date_scraped || '',
+
+      // ── Operations
+      operationClassification: record.operation_classification || [],
+      carrierOperation: record.carrier_operation || [],
+      cargoCarried: record.cargo_carried || [],
+
+      // ── Fleet
+      powerUnits: record.power_units || '',
+      drivers: record.drivers || '',
+
+      // ── Safety (not in Census — will be null/empty)
+      safetyRating: record.safety_rating || '',
+      safetyRatingDate: record.safety_rating_date || '',
+      basicScores: record.basic_scores || [],
+      oosRates: record.oos_rates || [],
+      outOfServiceDate: record.out_of_service_date || '',
+      stateCarrierId: record.state_carrier_id || '',
+      inspections: record.inspections || [],
+      crashes: record.crashes || [],
+
+      // ── Insurance (from carriers.insurance JSONB)
       insuranceHistoryFilings: record.insurance_history_filings || [],
-      inspections: record.inspections,
-      crashes: record.crashes,
-      createdAt: record.created_at,
-      updatedAt: record.updated_at,
+      insurancePolicies: record.insurance_history_filings || [],
     }));
+
     return { data: mapped, filtered_count: result.filtered_count };
   } catch (err: any) {
     console.error('Backend fetch error:', err);
     return { data: [], filtered_count: 0 };
   }
 };
+
+// ── Passthrough helpers ───────────────────────────────────────────────────────
+
 export const deleteCarrierFromSupabase = async (mcNumber: string): Promise<boolean> => {
   return deleteCarrierFromBackend(mcNumber);
 };
+
 export const getCarrierCountFromSupabase = async (): Promise<number> => {
   return getCarrierCountFromBackend();
 };
-export const updateCarrierInsuranceInSupabase = async (dotNumber: string, policies: any[]): Promise<boolean> => {
+
+export const updateCarrierInsuranceInSupabase = async (
+  dotNumber: string,
+  policies: any[]
+): Promise<boolean> => {
   return updateCarrierInsuranceInBackend(dotNumber, policies);
 };
-export const updateCarrierSafetyInSupabase = async (dotNumber: string, safetyData: any): Promise<boolean> => {
+
+export const updateCarrierSafetyInSupabase = async (
+  dotNumber: string,
+  safetyData: any
+): Promise<boolean> => {
   return updateCarrierSafetyInBackend(dotNumber, safetyData);
 };
+
 export const updateCarrierInsurance = updateCarrierInsuranceInSupabase;
