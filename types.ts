@@ -53,36 +53,56 @@ export interface InsuranceHistoryFiling {
   status: string;
 }
 export interface CarrierData {
+  // ── Identification
   mcNumber: string;
   dotNumber: string;
+  dunsNumber?: string;
+
+  // ── Identity
   legalName: string;
-  dbaName: string;
+  dbaName?: string;
   entityType: string;
   status: string;
-  email: string;
-  phone: string;
-  powerUnits: string;
+
+  // ── Contact
+  email?: string;
+  phone?: string;
+  /** Company representative (officer_1 + officer_2 from Census) */
+  companyRep?: string;
+
+  // ── Location
+  physicalAddress?: string;
+  mailingAddress?: string;
+
+  // ── Compliance
+  mcs150Date?: string;
+  mcs150Mileage?: string;
+  dateScraped?: string;
+
+  // ── Operations
+  operationClassification?: string[];
+  /** Operating territory (Interstate / Intrastate) */
+  carrierOperation?: string[];
+  cargoCarried?: string[];
+
+  // ── Fleet
+  powerUnits?: string;
+  drivers?: string;
   nonCmvUnits?: string;
-  drivers: string;
-  physicalAddress: string;
-  mailingAddress: string;
-  dateScraped: string;
-  mcs150Date: string;
-  mcs150Mileage: string;
-  operationClassification: string[];
-  carrierOperation: string[];
-  cargoCarried: string[];
-  outOfServiceDate: string;
-  stateCarrierId: string;
-  dunsNumber: string;
-  insurancePolicies?: InsurancePolicy[];
-  insuranceHistoryFilings?: InsuranceHistoryFiling[];
+
+  // ── Safety (enriched via pipeline)
   safetyRating?: string;
   safetyRatingDate?: string;
   basicScores?: BasicScore[];
   oosRates?: OosRate[];
+  outOfServiceDate?: string;
+  stateCarrierId?: string;
   inspections?: Inspection[];
   crashes?: Crash[];
+
+  // ── Insurance
+  insurancePolicies?: InsurancePolicy[];
+  insuranceHistoryFilings?: InsuranceHistoryFiling[];
 }
 export interface ScraperConfig {
   startPoint: string;
